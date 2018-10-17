@@ -1,0 +1,141 @@
+#Java/Maven
+export JAVA_HOME=/home/das/Documents/myLibs/jdk1.8.0_151
+export PATH=${JAVA_HOME}/bin:${PATH}
+export M2_HOME=/home/das/Documents/myLibs/apache-maven-3.5.2
+export PATH=${M2_HOME}/bin:${PATH}
+
+#1st time Create jar
+cd /home/das/Documents/myCmds/eclipseWorkspace/spring-cloud/kub-cm-mongo-flk-producer
+mvn -Pdockerimage docker:build docker:push
+
+#Jenkins
+/home/das/Documents/myLibs/apache-tomcat-9.0.8/bin/startup.sh
+/home/das/Documents/myLibs/apache-tomcat-9.0.8/bin/shutdown.sh
+http://localhost:8888/jenkins
+
+#Verify if micro-service producing metrics and prometheus format
+http://localhost:8070/svcbrands/actuator
+http://localhost:8070/svcbrands/actuator/prometheus
+
+
+
+Kubernetes
+============================================================================================
+
+minikube --memory 4000 --cpus 1 start
+k create configmap cm-kub-brandssource-service \
+--from-file=/home/das/git/kub-brandsSource-service/kub-brandsSource-service/src/main/resources/application.properties
+
+k get configmap cm-kub-brandssource-service  -o yaml
+
+# Replace created configMap
+k create configmap cm-kub-brandssource-service \
+--from-file=/home/das/git/kub-brandsSource-service/kub-brandsSource-service/src/main/resources/application.properties -o yaml --dry-run | kubectl replace -f -
+
+
+#APP
+k create -f /home/das/git/kub-brandsSource-service-boot2/kub-brandsSource-service-boot2/k8s/dp-kubBrandsSource-green-v2.yaml
+k create -f /home/das/git/kub-brandsSource-service-boot2/kub-brandsSource-service-boot2/k8s/svc-kubBrandsSource-green-v2.yaml
+k apply -f /home/das/git/kub-brandsSource-service-boot2/kub-brandsSource-service-boot2/k8s/ingress-kubBrandsSource-green.yaml
+k get ingresses
+kubectl describe ing ingress-brandssource-service
+curl http://dd.k8s.io/svcbrands/brands/allbrands
+
+
+## For Minikube , 
+http://192.168.99.100:31004/svcbrands/brands/allbrandsui
+http://192.168.99.100:31004/svcbrands/brands/allbrands
+
+$ minikube service svc-brands
+# With Ingress
+http://192.168.99.100/svcbrands/brands/allbrands
+
+
+## For GKE
+********************************************************************************************
+35.185.192.24 
+https://console.cloud.google.com/kubernetes/list?project=learn-kubernetes-ddas55&pli=1
+gcloud container clusters create dd --num-nodes 2 --machine-type g1-small
+gcloud container clusters get-credentials dd
+
+gcloud compute firewall-rules create svc-simpleboot-rule --allow=tcp:12017
+k get po -o wide
+kubectl get nodes -o jsonpath='{.items[*].status.addresses[?(@.type=="ExternalIP")].address}'
+
+
+SCALE UP/DOWN
+========================================================================
+k scale deployment dp-brands --replicas=3
+
+
+Rolling Update
+========================================================================
+k set image deployment dp-brands cont-brands=ddas55/sb-mongo-brands
+
+ELK	
+-------------------------------------
+# Create a folder in /home/das/Documents/myCmds/elasticsearch/data
+# to save elasticsearch data
+
+#Create
+cd /home/das/Documents/myCmds/myKubernetes/boot-fluentd-elasticsearch-kibana
+k apply -f /home/das/Documents/myCmds/eclipseWorkspace/spring-cloud/kub-cm-mongo-flk-producer/src/main/resources/myrunCmds/elasticsearch/es-config.yml
+k apply -f /home/das/Documents/myCmds/eclipseWorkspace/spring-cloud/kub-cm-mongo-flk-producer/src/main/resources/myrunCmds/elasticsearch/es-logging.yml
+#Note - If Kibana and elasticsearch running in localhost m/c and running the k8s in minikube then use name:  FLUENT_ELASTICSEARCH_HOST
+# value: "10.0.2.2"
+k apply -f /home/das/Documents/myCmds/eclipseWorkspace/spring-cloud/kub-cm-mongo-flk-producer/src/main/resources/myrunCmds/fluentd/fluentd-sa.yml
+k apply -f /home/das/Documents/myCmds/eclipseWorkspace/spring-cloud/kub-cm-mongo-flk-producer/src/main/resources/myrunCmds/fluentd/fluentd-ds.yml  
+k apply -f /home/das/Documents/myCmds/eclipseWorkspace/spring-cloud/kub-cm-mongo-flk-producer/src/main/resources/myrunCmds/elasticsearch/kibana-logging.yml
+k apply -f /home/das/Documents/myCmds/eclipseWorkspace/spring-cloud/kub-cm-mongo-flk-producer/src/main/resources/myrunCmds/kibana/kibana.yaml
+
+#Stop ELK in local
+ps -af | grep kibana*
+ps -af | grep elasticsearch
+ps -af | grep logstash
+
+
+AUTO Scaling
+========================================================================
+# Check heapster is running in minikube
+minikube addons list
+minikube addons enable heapster
+
+#Check how much cpu and memory used by node
+k top node
+k top pod
+
+#Downsize autoscale , cpu around 10%
+k autoscale deployment dp-elk --cpu-percent=10 --min=1 --max=3
+
+# Get cpu% used by pod ( hpa - HorinzontalPod-Autoscaler)
+k get hpa
+
+#Before hitting pod watch hpa and deployment
+watch -n 1 kubectl get hpa,deployment
+while true; do sleep 1; curl http://192.168.99.100/hw; echo -e '\n\n\n\n'$(date);done
+
+### Delete
+k delete hpa dp-elk
+
+
+k delete deployment --all  ; k delete ing --all ; k delete svc svc-brands
+
+
+# DELETE
+$ k delete deployment es-logging
+$ k delete svc es-logging-svc
+$ k delete persistentvolumeclaim es-logging-pvc
+$ k delete deployment kibana-logging
+$ k delete svc kibana-logging-svc
+k delete deployment kibana-logging
+k delete svc kibana-logging
+
+
+
+
+
+
+
+
+             
+
