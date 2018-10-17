@@ -61,34 +61,37 @@ public class ConsumerController {
 		//return new ResponseEntity(System.currentTimeMillis(),HttpStatus.OK);
 	}
 	 @RequestMapping("/appinfo")
-	 public ResponseEntity<?> appinfo(@RequestHeader("Authorization") String access_token) {
+	 //public ResponseEntity<?> appinfo(@RequestHeader("Authorization") String access_token) {
+	 public ResponseEntity<?> appinfo() {
 		AppStatusInfo appstatus = getAppStatus();
     	logger.info("@@ HelloController.appinfo:" + random + "." + hit);
     	return new ResponseEntity<AppStatusInfo>(appstatus,HttpStatus.OK);
 	
 	 }
 	 @RequestMapping("/brandclient")
-	 public ResponseEntity<?> hitAndBrands(@RequestHeader("Authorization") String access_token) {
-		 	System.out.println("@@ ConsumerController.hitAndBrands access_token:" + access_token);
-		 	AppStatusInfo appstatus = getAppStatus();
-	    	try {
-	    		logger.info("@@ ConsumerController.hitAndBrands access_token:" + access_token);
-	    		logger.info("@@ ConsumerController.hitAndBrands appinfo:" + appstatus);
-	    		Brand[] brands=brandsFromProducer(access_token);
-	    		if(null!=brands) {
-	    			for (Brand brand : brands) {
-	    				System.out.println("## HelloController.hitAndBrands.brand:" + brand);
-					}
-	    		}
-		    	appstatus.setBrands(brands);
-		    	logger.info("@@ HelloController.hitAndBrands:" + random + "." + hit);
-				return new ResponseEntity<AppStatusInfo>(appstatus,HttpStatus.OK);
-		
-			} catch (RuntimeException e) {
-				logger.error(" # allbrands.ERROR :" ,e.getMessage());
-				e.printStackTrace();
+	 public ResponseEntity<?> hitAndBrands() {
+		 String access_token=null;
+		 //public ResponseEntity<?> hitAndBrands(@RequestHeader("Authorization") String access_token) {
+	 	logger.info("@@ ConsumerController.hitAndBrands access_token:" + access_token);
+	 	AppStatusInfo appstatus = getAppStatus();
+		try {
+			logger.info("@@ ConsumerController.hitAndBrands access_token:" + access_token);
+			logger.info("@@ ConsumerController.hitAndBrands appinfo:" + appstatus);
+			Brand[] brands=brandsFromProducer(access_token);
+			if(null!=brands) {
+				for (Brand brand : brands) {
+					System.out.println("## HelloController.hitAndBrands.brand:" + brand);
+				}
 			}
-			return new ResponseEntity(null,HttpStatus.INTERNAL_SERVER_ERROR);
+	    	appstatus.setBrands(brands);
+	    	logger.info("@@ HelloController.hitAndBrands:" + random + "." + hit);
+			return new ResponseEntity<AppStatusInfo>(appstatus,HttpStatus.OK);
+	
+		} catch (RuntimeException e) {
+			logger.error(" # allbrands.ERROR :" ,e.getMessage());
+			e.printStackTrace();
+		}
+		return new ResponseEntity(null,HttpStatus.INTERNAL_SERVER_ERROR);
 	 }
 	
     @RequestMapping("/brandsui")
