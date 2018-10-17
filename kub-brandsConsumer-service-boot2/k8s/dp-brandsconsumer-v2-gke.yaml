@@ -1,0 +1,42 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: dp-brandsconsumer-v2
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: brandsconsumer
+        version: brandconsumer-version-2
+    spec:
+      containers:
+      - name: brandsconsumer
+        image: ddas55/brandsconsumer-boot2
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8060
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        livenessProbe:
+          httpGet:
+            path: /svcconsumer/consumer/healthz
+            port: 8060
+            httpHeaders:
+             - name: X-Custom-Header
+               value: Awesome
+          initialDelaySeconds: 30
+          periodSeconds: 15
+          failureThreshold: 5
+        readinessProbe:
+          httpGet:
+            path: /svcconsumer/consumer/rediness
+            port: 8060
+            httpHeaders:
+             - name: X-Custom-Header
+               value: Awesome
+          initialDelaySeconds: 5
+
