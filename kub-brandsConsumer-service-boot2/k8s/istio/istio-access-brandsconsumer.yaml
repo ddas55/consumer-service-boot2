@@ -30,5 +30,6 @@ spec:
     route:
     - destination:
         host: brandsconsumer
+    timeout: 0.5s
 
       
