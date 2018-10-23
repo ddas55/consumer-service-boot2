@@ -86,9 +86,10 @@ public class ConsumerController {
 	 public ResponseEntity<?> hitAndBrands(
 			 @RequestHeader Map<String, String> header
 			 ) {
+		 System.out.println("@@  ConsumerController Calling @@");
 		 for (String key : header.keySet()) {
 			 logger.info("@@ ConsumerController.header key:" + key + ",value=" + header.get(key));
-			 //System.out.println("@@ ConsumerController.header key:" + key + ",value=" + header.get(key));
+			 System.out.println("@@ SOP ConsumerController.header key:" + key + ",value=" + header.get(key));
 		 }
 		 
 		 String access_token=null;
