@@ -1,10 +1,15 @@
 package com.dd.controller;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
+import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -83,39 +88,27 @@ public class ConsumerController {
 	}
 	 
 	 @RequestMapping("/brandclient")
-	 public ResponseEntity<?> hitAndBrands(
-			 @RequestHeader("x-request-id") String xreq,
-			 @RequestHeader("x-b3-traceid") String xtraceid,
-			 @RequestHeader("x-b3-spanid") String xspanid,
-			 @RequestHeader("x-b3-parentspanid") String xparentspanid,
-			 @RequestHeader("x-b3-sampled") String xsampled,
-             @RequestHeader("x-b3-flags") String xflags,
-             @RequestHeader("x-ot-span-context") String xotspan
-			 ) {
-		 String access_token=null;
+	 public ResponseEntity<?> hitAndBrands( HttpServletRequest request) {
 		 //public ResponseEntity<?> hitAndBrands(@RequestHeader("Authorization") String access_token) {
-		 System.out.println("@@ ConsumerController.@RequestHeader xreq:" + xreq + " ,xtraceid:" + xtraceid
-				 + ",xspanid:" + xspanid + ",xparentspanid:" + xparentspanid
-				 + ",xsampled:" + xsampled + ",xflags:" + xflags + ",xotspan:" + xotspan);
+		 String access_token=null;
+		 String[] array = {"x-request-id","x-b3-traceid","x-b3-spanid",
+				 "x-b3-parentspanid","x-b3-sampled","x-b3-flags","x-ot-span-context"};
+		 List<String> headersToPass = Arrays.asList(array);
+
+		 MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+		 headers.add("Authorization", "Bearer " + access_token);
+		 Enumeration headerNames = request.getHeaderNames();
+			while (headerNames.hasMoreElements()) {
+				String key = (String) headerNames.nextElement();
+				if(headersToPass.contains(key)) {
+					String value = request.getHeader(key);
+					headers.add(key, value);
+				}
+		 }
+		 System.out.println("@@ ConsumerController.hitAndBrands headers:" + headers);
 		 logger.info("@@ ConsumerController.hitAndBrands access_token:" + access_token);
 	 	AppStatusInfo appstatus = getAppStatus(null);
 		try {
-			MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
-			headers.add("Authorization", "Bearer " + access_token);
-			headers.add("x-request-id", xreq);
-			headers.add("x-b3-traceid", xtraceid);
-			headers.add("x-b3-spanid", xspanid);
-			if(null!=xparentspanid) {
-				headers.add("x-b3-parentspanid", xparentspanid);
-			}
-			headers.add("x-b3-sampled", xsampled);
-			if(null!=xflags) {
-				headers.add("x-b3-flags", xflags);
-			}
-			if(null!=xotspan) {
-				headers.add("x-ot-span-context", xotspan);
-			}
-					
 			logger.info("@@ ConsumerController.hitAndBrands access_token:" + access_token);
 			logger.info("@@ ConsumerController.hitAndBrands appinfo:" + appstatus);
 			Brand[] brands=brandsFromProducer(headers);
