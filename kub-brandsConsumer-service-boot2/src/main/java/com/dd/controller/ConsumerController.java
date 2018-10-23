@@ -1,7 +1,9 @@
 package com.dd.controller;
 
 import java.text.SimpleDateFormat;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,6 +20,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
@@ -30,6 +33,7 @@ import com.dd.data.Brand;
 public class ConsumerController {
 	
 	private static final Logger logger = LoggerFactory.getLogger(ConsumerController.class);
+	 private static final String V2_CONTENT_TYPE = "application/vnd.consumer.appinfo.v2+json";
 	
 	private static int hit=0;
 	private static int random=(int)(Math.random()*100);
@@ -49,35 +53,66 @@ public class ConsumerController {
 
 	@RequestMapping("/healthz")
 	public String healthz() {
-		//logger.info("** healthz Called random:" + random);
 	    return String.valueOf(System.currentTimeMillis());
 	}
 	
 	@RequestMapping("/rediness")
 	public String rediness() {
-		//logger.info("** rediness Called random:" + random);
-		//Load large data or configuration files during startup. 
 		return String.valueOf(System.currentTimeMillis());
-		//return new ResponseEntity(System.currentTimeMillis(),HttpStatus.OK);
 	}
-	 @RequestMapping("/appinfo")
-	 //public ResponseEntity<?> appinfo(@RequestHeader("Authorization") String access_token) {
-	 public ResponseEntity<?> appinfo() {
-		AppStatusInfo appstatus = getAppStatus();
+	
+	@RequestMapping("/appinfo")
+	//public ResponseEntity<?> appinfo(@RequestHeader("Authorization") String access_token) {
+	public ResponseEntity<?> appinfoRaw() {
+		AppStatusInfo appstatus = getAppStatus(null);
     	logger.info("@@ HelloController.appinfo:" + random + "." + hit);
     	return new ResponseEntity<AppStatusInfo>(appstatus,HttpStatus.OK);
+	}
 	
-	 }
+	@RequestMapping(value="/appinfo" ,method = RequestMethod.GET,  produces = V2_CONTENT_TYPE)
+	public ResponseEntity<?> appinfoV2() {
+		AppStatusInfo appstatus = getAppStatus("New Version-V2");
+    	logger.info("@@ HelloController.appinfo.V2:" + random + "." + hit);
+    	return new ResponseEntity<AppStatusInfo>(appstatus,HttpStatus.OK);
+	}
+	
+	@RequestMapping("/appinfomoved")
+	public ResponseEntity<?> appinfoMoved() {
+		String str="This version of the API is no longer supported, please use appinfo";
+     	return new ResponseEntity<String>(str,HttpStatus.MOVED_PERMANENTLY);
+	}
+	 
 	 @RequestMapping("/brandclient")
-	 public ResponseEntity<?> hitAndBrands() {
+	 public ResponseEntity<?> hitAndBrands(
+			 @RequestHeader("x-request-id") String xreq,
+			 @RequestHeader("x-b3-traceid") String xtraceid,
+			 @RequestHeader("x-b3-spanid") String xspanid,
+			 @RequestHeader("x-b3-parentspanid") String xparentspanid,
+			 @RequestHeader("x-b3-sampled") String xsampled,
+             @RequestHeader("x-b3-flags") String xflags,
+             @RequestHeader("x-ot-span-context") String xotspan
+			 ) {
 		 String access_token=null;
 		 //public ResponseEntity<?> hitAndBrands(@RequestHeader("Authorization") String access_token) {
-	 	logger.info("@@ ConsumerController.hitAndBrands access_token:" + access_token);
-	 	AppStatusInfo appstatus = getAppStatus();
+		 logger.info("@@ ConsumerController.@RequestHeader xreq:" + xreq + " ,xtraceid:" + xtraceid
+				 + ",xspanid:" + xspanid + ",xparentspanid:" + xparentspanid
+				 + ",xsampled:" + xsampled + ",xflags:" + xflags + ",xotspan:" + xotspan);
+		 logger.info("@@ ConsumerController.hitAndBrands access_token:" + access_token);
+	 	AppStatusInfo appstatus = getAppStatus(null);
 		try {
+			MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+			headers.add("Authorization", "Bearer " + access_token);
+			headers.add("x-request-id", xreq);
+			headers.add("x-b3-traceid", xtraceid);
+			headers.add("x-b3-spanid", xspanid);
+			headers.add("x-b3-parentspanid", xparentspanid);
+			headers.add("x-b3-sampled", xsampled);
+			headers.add("x-b3-flags", xflags);
+			headers.add("x-ot-span-context", xotspan);
+		
 			logger.info("@@ ConsumerController.hitAndBrands access_token:" + access_token);
 			logger.info("@@ ConsumerController.hitAndBrands appinfo:" + appstatus);
-			Brand[] brands=brandsFromProducer(access_token);
+			Brand[] brands=brandsFromProducer(headers);
 			if(null!=brands) {
 				for (Brand brand : brands) {
 					System.out.println("## HelloController.hitAndBrands.brand:" + brand);
@@ -97,7 +132,7 @@ public class ConsumerController {
     @RequestMapping("/brandsui")
     public String brandsui() {
     //public String brandsui(@RequestHeader("Authorization") String access_token) {
-    	AppStatusInfo appstatus = getAppStatus();
+    	AppStatusInfo appstatus = getAppStatus(null);
     	logger.info("## hw.calling svc-brands:" + svcBrandUrl);
     	logger.info("## Hit:" + hit);
     	logger.info("## hw.random:" + random);
@@ -106,11 +141,9 @@ public class ConsumerController {
        	return getHTML(appstatus);
     }
     
-    private Brand[] brandsFromProducer(String access_token) {
+    private Brand[] brandsFromProducer(MultiValueMap<String, String> headers) {
     	Brand[] brands =null;
-       	MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
        	headers.add("Content-Type", "application/json");
-        headers.add("Authorization", "Bearer " + access_token);
         HttpEntity<String> request = new HttpEntity<String>( headers);
 	   	try {
 	   		ResponseEntity<Brand[]> responseEntity = restTemplate.exchange(
@@ -174,7 +207,7 @@ public class ConsumerController {
     	return sb.toString();
     }
     
-    private AppStatusInfo getAppStatus() {
+    private AppStatusInfo getAppStatus(String ver) {
 		hit++;
 		SimpleDateFormat ft = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
     	String tm=ft.format(System.currentTimeMillis());
@@ -183,7 +216,12 @@ public class ConsumerController {
     	appstatus.setRandom(String.valueOf(random));
     	appstatus.setAppname(applicationName);
     	appstatus.setTime(tm);
-    	appstatus.setVersion(version);
+    	if(null!=ver) {
+    		appstatus.setVersion(ver);
+    	}else {
+    		appstatus.setVersion(version);
+    	}
+    	
     	return appstatus;
     }
 
