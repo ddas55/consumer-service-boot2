@@ -84,23 +84,25 @@ public class ConsumerController {
 	 
 	 @RequestMapping("/brandclient")
 	 public ResponseEntity<?> hitAndBrands(
-			 @RequestHeader("x-request-id") String xreq,
-			 @RequestHeader("x-b3-traceid") String xtraceid,
-			 @RequestHeader("x-b3-spanid") String xspanid,
-			 @RequestHeader("x-b3-parentspanid") String xparentspanid,
-			 @RequestHeader("x-b3-sampled") String xsampled,
-             @RequestHeader("x-b3-flags") String xflags,
-             @RequestHeader("x-ot-span-context") String xotspan
+			 @RequestHeader Map<String, String> header
 			 ) {
+		 for (String key : header.keySet()) {
+			 logger.info("@@ ConsumerController.header key:" + key + ",value=" + header.get(key));
+			 //System.out.println("@@ ConsumerController.header key:" + key + ",value=" + header.get(key));
+		 }
+		 
 		 String access_token=null;
 		 //public ResponseEntity<?> hitAndBrands(@RequestHeader("Authorization") String access_token) {
-		 logger.info("@@ ConsumerController.@RequestHeader xreq:" + xreq + " ,xtraceid:" + xtraceid
-				 + ",xspanid:" + xspanid + ",xparentspanid:" + xparentspanid
-				 + ",xsampled:" + xsampled + ",xflags:" + xflags + ",xotspan:" + xotspan);
+		 //logger.info("@@ ConsumerController.@RequestHeader xreq:" + xreq + " ,xtraceid:" + xtraceid
+		//		 + ",xspanid:" + xspanid + ",xparentspanid:" + xparentspanid
+		//		 + ",xsampled:" + xsampled + ",xflags:" + xflags + ",xotspan:" + xotspan);
 		 logger.info("@@ ConsumerController.hitAndBrands access_token:" + access_token);
 	 	AppStatusInfo appstatus = getAppStatus(null);
+	 	Brand[] brands=null;
+		MultiValueMap<String, String> headers=null;
 		try {
-			MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+			headers= new LinkedMultiValueMap<>();
+			/*
 			headers.add("Authorization", "Bearer " + access_token);
 			headers.add("x-request-id", xreq);
 			headers.add("x-b3-traceid", xtraceid);
@@ -109,10 +111,11 @@ public class ConsumerController {
 			headers.add("x-b3-sampled", xsampled);
 			headers.add("x-b3-flags", xflags);
 			headers.add("x-ot-span-context", xotspan);
+			*/
 		
 			logger.info("@@ ConsumerController.hitAndBrands access_token:" + access_token);
 			logger.info("@@ ConsumerController.hitAndBrands appinfo:" + appstatus);
-			Brand[] brands=brandsFromProducer(headers);
+			//brands=brandsFromProducer(headers);
 			if(null!=brands) {
 				for (Brand brand : brands) {
 					System.out.println("## HelloController.hitAndBrands.brand:" + brand);
